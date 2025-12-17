@@ -6,12 +6,13 @@ services:
     build:
       context: ./services/gateway
     ports:
-      - "8080:8080"
+      - "8082:8080" # changed host port to avoid conflict with Weaviate on 8080
     env_file: .env
     depends_on:
       - conversation-manager
     restart: unless-stopped
     healthcheck:
+      # healthcheck runs INSIDE the container, so check container port 8080
       test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
 
   backend:
@@ -48,6 +49,8 @@ services:
       - conversation-manager
       - rag-engine
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/health || exit 1"]
 
   rag-engine:
     image: aiagent/rag-engine:local
@@ -60,6 +63,8 @@ services:
     volumes:
       - rag-data:/var/lib/rag
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9300/health || exit 1"]
 
   action-executor:
     image: aiagent/action-executor:local
@@ -70,6 +75,8 @@ services:
       - postgres
       - redis
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9400/health || exit 1"]
 
   frontend:
     build:
@@ -79,7 +86,8 @@ services:
       - "3000:80"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ | grep -q 'AI Agent Frontend' || exit 1"]
+      # inside container check port 80
+      test: ["CMD-SHELL", "wget -qO- http://localhost/ | grep -q 'AI Agent Frontend' || exit 1"]
 
   auth-service:
     image: aiagent/auth-service:local
@@ -89,6 +97,8 @@ services:
     depends_on:
       - postgres
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9500/health || exit 1"]
 
   vector-db:
     # Default sample: Weaviate (configurable via VECTOR_STORE_TYPE env)
