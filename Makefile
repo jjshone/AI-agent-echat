@@ -20,7 +20,14 @@ test:
 	# Run unit tests across services. Each service provides `make test` target.
 	# Add parallelization or matrixing as needed.
 	./scripts/run_tests.sh
+backend-test:
+	cd backend && pytest -q
 
+frontend-test:
+	cd frontend && npm ci --silent || npm i --silent && npm test --silent
+
+integration-tests:
+	./scripts/docker_compose_tests.sh
 lint:
 	./scripts/run_linters.sh
 

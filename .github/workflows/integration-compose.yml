@@ -1,0 +1,32 @@
+name: Integration (docker compose)
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  integration-compose:
+    runs-on: ubuntu-latest
+    services:
+      docker:
+        image: docker:24.0.2-dind
+        privileged: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Use Docker Compose
+        run: |
+          docker compose version
+      - name: Build and bring up services
+        run: |
+          docker compose up -d --build
+      - name: Run integration tests (compose)
+        run: |
+          chmod +x ./scripts/docker_compose_tests.sh
+          ./scripts/docker_compose_tests.sh
+      - name: Tear down
+        if: always()
+        run: |
+          docker compose down -v
