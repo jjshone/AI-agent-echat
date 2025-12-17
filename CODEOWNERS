@@ -1,0 +1,7 @@
+# CODEOWNERS - define default reviewers for paths
+
+# Team ownership
+/docs/ @jjshone
+/services/ai-orchestrator/ @jjshone
+/services/conversation-manager/ @jjshone
+/services/rag-engine/ @jjshone

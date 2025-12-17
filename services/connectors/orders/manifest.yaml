@@ -1,0 +1,27 @@
+# Connector manifest: Orders API (example)
+name: orders
+version: 0.1.0
+description: Example Orders connector manifest
+auth:
+  type: oauth2
+  scopes:
+    - orders.read
+    - orders.write
+capabilities:
+  - getOrder
+  - createRefund
+  - listOrders
+schemas:
+  getOrder:
+    params:
+      - name: orderId
+        type: string
+        required: true
+  createRefund:
+    params:
+      - name: orderId
+        type: string
+        required: true
+      - name: amount
+        type: number
+        required: true

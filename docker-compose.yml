@@ -1,0 +1,133 @@
+version: '3.9'
+
+services:
+  gateway:
+    image: aiagent/gateway:local
+    build:
+      context: ./services/gateway
+    ports:
+      - "8080:8080"
+    env_file: .env
+    depends_on:
+      - conversation-manager
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+
+  conversation-manager:
+    image: aiagent/conversation-manager:local
+    build:
+      context: ./services/conversation-manager
+    env_file: .env
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9100/health || exit 1"]
+
+  ai-orchestrator:
+    image: aiagent/ai-orchestrator:local
+    build:
+      context: ./services/ai-orchestrator
+    env_file: .env
+    depends_on:
+      - conversation-manager
+      - rag-engine
+    restart: unless-stopped
+
+  rag-engine:
+    image: aiagent/rag-engine:local
+    build:
+      context: ./services/rag-engine
+    env_file: .env
+    depends_on:
+      - vector-db
+      - postgres
+    volumes:
+      - rag-data:/var/lib/rag
+    restart: unless-stopped
+
+  action-executor:
+    image: aiagent/action-executor:local
+    build:
+      context: ./services/action-executor
+    env_file: .env
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
+
+  auth-service:
+    image: aiagent/auth-service:local
+    build:
+      context: ./services/auth-service
+    env_file: .env
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  vector-db:
+    # Default sample: Weaviate (configurable via VECTOR_STORE_TYPE env)
+    image: semitechnologies/weaviate:1.18.1
+    environment:
+      - QUERY_DEFAULTS_LIMIT=20
+      - AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED=true
+      - PERSISTENCE_DATA_PATH=/var/lib/weaviate
+      - DEFAULT_VECTORIZER_MODULE=none
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    volumes:
+      - weaviate-data:/var/lib/weaviate
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/v1/.well-known/ready || exit 1"]
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+    ports:
+      - "9000:9000"
+    volumes:
+      - minio-data:/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  weaviate-data:
+  redis-data:
+  rag-data:
+  minio-data:
+
+networks:
+  default:
+    name: aiagent-network
+
+# Notes:
+# - This compose file is a development scaffold. In production, replace vector-db and other stateful services with managed services or production-ready clusters.
+# - Switch vector store via VECTOR_STORE_TYPE and adapter configuration in the RAG service.
+# - Do not store secrets in .env in production; use a vault integration.

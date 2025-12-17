@@ -1,0 +1,30 @@
+version: '3.9'
+
+services:
+  gateway:
+    volumes:
+      - ./services/gateway:/app
+    environment:
+      - NODE_ENV=development
+
+  conversation-manager:
+    volumes:
+      - ./services/conversation-manager:/app
+
+  ai-orchestrator:
+    volumes:
+      - ./services/ai-orchestrator:/app
+
+  rag-engine:
+    volumes:
+      - ./services/rag-engine:/app
+
+  action-executor:
+    volumes:
+      - ./services/action-executor:/app
+
+  auth-service:
+    volumes:
+      - ./services/auth-service:/app
+
+# Development overrides mount local code for rapid iteration and testing
